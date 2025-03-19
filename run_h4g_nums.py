@@ -431,7 +431,7 @@ if __name__ == "__main__":
     parser.add_argument("-noPtMgg", "--remove_pt_mgg", help="Remove pt/mgg in preselections.", action="store_true", required=False)
     parser.add_argument("-mvaID", "--apply_mvaID", help="Apply mvaID cut in preselections.", action="store_true", required=False)
     parser.add_argument("-perEvent", "--try_weird_pseudo_selections", help="Use per-event basis for all cuts.", action="store_true", required=False)
-    parser.add_argument("-sub", "--run_subset", help="Run only 5% of sample.", action="store_true", required=False)
+    parser.add_argument("-sub", "--run_subset", help="Run only 5/100 of sample.", action="store_true", required=False)
     parser.add_argument("-y", "--year", help="Year of samples to use. Defaults to 2022.", default=2022, required=False)
     parser.add_argument("-ex", "--extra", default="", type=str, help="Extra string appended to efficiencies JSON. Start with _.", required=False)
     args = parser.parse_args()

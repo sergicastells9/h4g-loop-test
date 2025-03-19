@@ -24,12 +24,14 @@ if __name__ == "__main__":
     # Get current directory
     cwd = os.path.dirname(os.path.abspath(__file__))
     
+    if not os.path.exists(os.path.join(cwd, "tables")):
+        os.mkdir(os.path.join(cwd, "tables"))
 
-    # Make for-loop with eff_json over either 1 element or the entire set of efficiency JSONs in the "jsons" directory.
-    assert False, "Need to include for-loop here!"
+    with open(os.path.join(cwd, "tables", args.eff_json.replace(".json", ".txt")), "w") as f:
+        f.write(f"Inputs: {args.eff_json.replace('.png', '')}\n\n")
 
     # Load efficiencies JSON
-    with open(f"{cwd}/{eff_json}", "r") as f:
+    with open(f"{cwd}/jsons/{args.eff_json}", "r") as f:
         eff_list = json.load(f)
 
     efficiencies = {}
@@ -37,14 +39,19 @@ if __name__ == "__main__":
 
     for mass, eff_list in eff_list.items():
         efficiencies.update({mass: Nevents.copy()})
-        print(f"Mass: {mass}")
+        with open(os.path.join(cwd, "tables", args.eff_json.replace(".json", ".txt")), "a") as f:
+            print(f"Mass: {mass}")
+            f.write(f"Mass: {mass}\n")
 
         for i, key in enumerate(Nevents.keys()):
             # Sum of genWeight should be the same for full samples!
             N = eff_list[0]
             Ni = eff_list[i]
             efficiencies[mass][key] = Ni / N * 100.0
-            print('\t', f"{key:<66}", f"Numerator: {Ni:<15}", f"Denominator: {N:<20}", f"{efficiencies[mass][key]:<.2f}%")
+            out_str = '\t', f"{key:<66}", f"Numerator: {Ni:<15}", f"Denominator: {N:<20}", f"{efficiencies[mass][key]:<.2f}%"
+            print("\t".join(out_str))
+            with open(os.path.join(cwd, "tables", args.eff_json.replace(".json", ".txt")), "a") as f:
+                f.write("\t".join(out_str) + '\n')
 
     plt.figure()
     label_cut = 1
@@ -68,10 +75,10 @@ if __name__ == "__main__":
     ax.set_ylim(0.0, 60.0)
 
     # Save figure
-    path = os.path.join(cwd, "efficiencies", eff_json.replace('json', 'png'))
+    path = os.path.join(cwd, "efficiencies", args.eff_json.replace('json', 'png'))
     if not os.path.exists(os.path.join(cwd, "efficiencies")):
         os.mkdir(os.path.join(cwd, "efficiencies"))
     plt.savefig(path)
     assert os.path.isfile(path), "Saved plot does not exist."
-    print(f"Saved {eff_json.replace('json', 'png')} to file.")
+    print(f"Saved {args.eff_json.replace('json', 'png')} to file.")
     plt.close()

@@ -1,0 +1,62 @@
+Inputs: efficiencies_2022_noPtMgg_withMvaID_perEvent.json
+
+Mass: 15_GeV
+		initial_events                                                    	Numerator: 166577         	Denominator: 166577              	100.00%
+		Pre-selections                                                    	Numerator: 70023          	Denominator: 166577              	42.04%
+		HLT Flag                                                          	Numerator: 66756          	Denominator: 166577              	40.08%
+		Pre-selections + At least 4 photons                               	Numerator: 26276          	Denominator: 166577              	15.77%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 8140           	Denominator: 166577              	4.89%
+Mass: 20_GeV
+		initial_events                                                    	Numerator: 187158         	Denominator: 187158              	100.00%
+		Pre-selections                                                    	Numerator: 83817          	Denominator: 187158              	44.78%
+		HLT Flag                                                          	Numerator: 80198          	Denominator: 187158              	42.85%
+		Pre-selections + At least 4 photons                               	Numerator: 32035          	Denominator: 187158              	17.12%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 9453           	Denominator: 187158              	5.05%
+Mass: 25_GeV
+		initial_events                                                    	Numerator: 194289         	Denominator: 194289              	100.00%
+		Pre-selections                                                    	Numerator: 89666          	Denominator: 194289              	46.15%
+		HLT Flag                                                          	Numerator: 85772          	Denominator: 194289              	44.15%
+		Pre-selections + At least 4 photons                               	Numerator: 34593          	Denominator: 194289              	17.80%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 9824           	Denominator: 194289              	5.06%
+Mass: 30_GeV
+		initial_events                                                    	Numerator: 252231         	Denominator: 252231              	100.00%
+		Pre-selections                                                    	Numerator: 118208         	Denominator: 252231              	46.86%
+		HLT Flag                                                          	Numerator: 112944         	Denominator: 252231              	44.78%
+		Pre-selections + At least 4 photons                               	Numerator: 46815          	Denominator: 252231              	18.56%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 12766          	Denominator: 252231              	5.06%
+Mass: 35_GeV
+		initial_events                                                    	Numerator: 161628         	Denominator: 161628              	100.00%
+		Pre-selections                                                    	Numerator: 76170          	Denominator: 161628              	47.13%
+		HLT Flag                                                          	Numerator: 72745          	Denominator: 161628              	45.01%
+		Pre-selections + At least 4 photons                               	Numerator: 31718          	Denominator: 161628              	19.62%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 8436           	Denominator: 161628              	5.22%
+Mass: 40_GeV
+		initial_events                                                    	Numerator: 162667         	Denominator: 162667              	100.00%
+		Pre-selections                                                    	Numerator: 77515          	Denominator: 162667              	47.65%
+		HLT Flag                                                          	Numerator: 73685          	Denominator: 162667              	45.30%
+		Pre-selections + At least 4 photons                               	Numerator: 34968          	Denominator: 162667              	21.50%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 9337           	Denominator: 162667              	5.74%
+Mass: 45_GeV
+		initial_events                                                    	Numerator: 175001         	Denominator: 175001              	100.00%
+		Pre-selections                                                    	Numerator: 84091          	Denominator: 175001              	48.05%
+		HLT Flag                                                          	Numerator: 79923          	Denominator: 175001              	45.67%
+		Pre-selections + At least 4 photons                               	Numerator: 43080          	Denominator: 175001              	24.62%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 11724          	Denominator: 175001              	6.70%
+Mass: 50_GeV
+		initial_events                                                    	Numerator: 234143         	Denominator: 234143              	100.00%
+		Pre-selections                                                    	Numerator: 114054         	Denominator: 234143              	48.71%
+		HLT Flag                                                          	Numerator: 107987         	Denominator: 234143              	46.12%
+		Pre-selections + At least 4 photons                               	Numerator: 65905          	Denominator: 234143              	28.15%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 19992          	Denominator: 234143              	8.54%
+Mass: 55_GeV
+		initial_events                                                    	Numerator: 163028         	Denominator: 163028              	100.00%
+		Pre-selections                                                    	Numerator: 80819          	Denominator: 163028              	49.57%
+		HLT Flag                                                          	Numerator: 76468          	Denominator: 163028              	46.90%
+		Pre-selections + At least 4 photons                               	Numerator: 51148          	Denominator: 163028              	31.37%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 18797          	Denominator: 163028              	11.53%
+Mass: 60_GeV
+		initial_events                                                    	Numerator: 229246         	Denominator: 229246              	100.00%
+		Pre-selections                                                    	Numerator: 115175         	Denominator: 229246              	50.24%
+		HLT Flag                                                          	Numerator: 108910         	Denominator: 229246              	47.51%
+		Pre-selections + At least 4 photons                               	Numerator: 78857          	Denominator: 229246              	34.40%
+		Pre-selections + At least 4 photons + Pseudoscalar selections     	Numerator: 33943          	Denominator: 229246              	14.81%
