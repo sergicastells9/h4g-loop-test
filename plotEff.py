@@ -27,12 +27,12 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.join(cwd, "tables")):
         os.mkdir(os.path.join(cwd, "tables"))
 
-    with open(os.path.join(cwd, "tables", args.eff_json.replace(".json", ".txt")), "w") as f:
-        f.write(f"Inputs: {args.eff_json.replace('.png', '')}\n\n")
-
     # Load efficiencies JSON
     with open(f"{cwd}/jsons/{args.eff_json}", "r") as f:
         eff_list = json.load(f)
+
+    with open(os.path.join(cwd, "tables", args.eff_json.replace(".json", ".txt")), "w") as f:
+        f.write(f"Inputs: {args.eff_json.replace('.png', '')}\n\n")
 
     efficiencies = {}
     Nevents = dict.fromkeys(["initial_events", "Pre-selections", "HLT Flag", "Pre-selections + At least 4 photons", "Pre-selections + At least 4 photons + Pseudoscalar selections"])
