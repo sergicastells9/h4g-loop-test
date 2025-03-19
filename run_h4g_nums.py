@@ -42,7 +42,7 @@ def phoIsoCorrection(
     
     photon_abs_eta = np.abs(eta)
 
-    if year != 2018:
+    if year != "2018":
         # EB regions
         region_EB_0 = (photon_abs_eta > 0.0) and (photon_abs_eta < 1.0)
         rhoCorr_EB_0 = iso - (rho * EA1_EB1) - (rho * rho * EA2_EB1)
@@ -88,6 +88,8 @@ def phoIsoCorrection(
             return iso - rho * 0.16544
         elif photon_abs_eta > 1.5:
             return iso - rho * 0.13212
+        else:
+            return iso
 
 
 ###   Start selections functions   ###
@@ -99,6 +101,9 @@ def doSelections(
     pseudos,
     event,
     apply_m55_trigger,
+    include_mvaID,
+    remove_pt_mgg,
+    try_weird_pseudo_selections,
     year
 ) -> tuple:
     
@@ -112,15 +117,16 @@ def doSelections(
     descending_pt = ak.argsort(event["Photon_pt"], ascending=False)
 
     # Format rho to size of photons array
-    rho = event["Rho_fixedGridRhoAll" if year != 2018 else 'fixedGridRhoFastjetAll'] * np.ones_like(event["Photon_pt"])
+    rho = event["Rho_fixedGridRhoAll" if year != "2018" else 'fixedGridRhoFastjetAll'] * np.ones_like(event["Photon_pt"])
     event["Photon_pfPhoIso03_rhoCorrected"] = [None] * len(descending_pt)
 
     # Keep good photon indices for diphoton cuts
     good_photons = []
 
+    # Apply pre-selection cuts on photons
     for i in descending_pt:
         ## Fiducial cuts
-        #fiducial = np.abs(event["Photon_eta"][i]) < max_eta and (np.abs(event["Photon_eta"][i]) > gap_endcap_eta or np.abs(event["Photon_eta"][i]) < gap_barrel_eta)
+        #fiducial = np.abs(event["Photon_eta"][i]) < 2.5 and (np.abs(event["Photon_eta"][i]) > 1.566 or np.abs(event["Photon_eta"][i]) < 1.4442)
         fiducial = event["Photon_isScEtaEB"][i] or event["Photon_isScEtaEE"][i]
         
         ## Trigger mimicking cuts
@@ -129,14 +135,18 @@ def doSelections(
             pt = event["Photon_pt"][i] > 30.0
         elif i == 1:
             pt = event["Photon_pt"][i] > 18.0
-        hoe = event["Photon_hoe"][i] < 0.08
-        
-        sigma_ieie = r9 = False
-        if event["Photon_isScEtaEB"]:
+
+        hoe = event["Photon_hoe"][i] < 0.08    
+
+        sigma_ieie = False
+        r9 = False
+        if event["Photon_isScEtaEB"][i]:
+        #if np.abs(event["Photon_eta"][i]) < 1.4442:
             # EB
             sigma_ieie = event["Photon_sieie"][i] < 0.015
             r9 = event["Photon_r9"][i] > 0.5
-        elif event["Photon_isScEtaEE"]:
+        elif event["Photon_isScEtaEE"][i]:
+        #elif np.abs(event["Photon_eta"][i]) < 2.5 and np.abs(event["Photon_eta"][i]) > 1.566:
             # EE
             sigma_ieie = event["Photon_sieie"][i] < 0.035
             r9 = event["Photon_r9"][i] > 0.8
@@ -146,32 +156,46 @@ def doSelections(
         trackerIso = event["Photon_trkSumPtHollowConeDR03"][i] < 6.0
         electron_veto = event["Photon_pixelSeed"][i] == False
         
-        hlt = pt and hoe and pfPhoIso and trackerIso and electron_veto and sigma_ieie and r9
+        hlt = pt and hoe and sigma_ieie and r9 and pfPhoIso and trackerIso
 
         ## miniAOD cuts
         mini_r9 = event["Photon_r9"][i] > 0.8
-        chad_iso = event['Photon_pfRelIso03_chg_quadratic' if args.year != 2018 else 'Photon_pfRelIso03_chg'][i] < 20.0
-        chad_iso_pt = event['Photon_pfRelIso03_chg_quadratic' if args.year != 2018 else 'Photon_pfRelIso03_chg'][i] * event["Photon_pt"][i] < 0.3
+        chad_iso = event['Photon_pfRelIso03_chg_quadratic' if year != "2018" else 'Photon_pfRelIso03_chg'][i] < 20.0
+        chad_iso_pt = event['Photon_pfRelIso03_chg_quadratic' if year != "2018" else 'Photon_pfRelIso03_chg'][i] * event["Photon_pt"][i] < 0.3
         mini = mini_r9 or chad_iso or chad_iso_pt
 
-        if fiducial and hlt and mini:
+        mvaID = True
+        if include_mvaID:
+            mvaID = event["Photon_mvaID"][i] > -0.9
+        if fiducial and hlt and electron_veto and mini and mvaID:
             good_photons.append(i)
 
     # Minimum 2 photons cut for diphotons
     if len(good_photons) < 2:
         return (initial_events, triggers, pre_sel, four_photons, pseudos, event)
 
+    # Apply diphoton cuts or leave diphoton as None if no diphotons pass selections
     best_dipho = 0.0
     diphoton = None
     for perm in set(more_itertools.distinct_combinations(good_photons, 2)):
-        pho1_vec = vector.obj(pt=event["Photon_pt"][perm[0]], eta=event["Photon_eta"][perm[0]], phi=event["Photon_phi"][perm[0]], mass=0.0)
-        pho2_vec = vector.obj(pt=event["Photon_pt"][perm[1]], eta=event["Photon_eta"][perm[1]], phi=event["Photon_phi"][perm[1]], mass=0.0)
-        assert pho1_vec.pt > pho2_vec.pt
+        if event["Photon_pt"][perm[0]] > event["Photon_pt"][perm[1]]:
+            pho1_vec = vector.obj(pt=event["Photon_pt"][perm[0]], eta=event["Photon_eta"][perm[0]], phi=event["Photon_phi"][perm[0]], mass=0.0)
+            pho2_vec = vector.obj(pt=event["Photon_pt"][perm[1]], eta=event["Photon_eta"][perm[1]], phi=event["Photon_phi"][perm[1]], mass=0.0)
+        elif event["Photon_pt"][perm[1]] > event["Photon_pt"][perm[0]]:
+            pho2_vec = vector.obj(pt=event["Photon_pt"][perm[0]], eta=event["Photon_eta"][perm[0]], phi=event["Photon_phi"][perm[0]], mass=0.0)
+            pho1_vec = vector.obj(pt=event["Photon_pt"][perm[1]], eta=event["Photon_eta"][perm[1]], phi=event["Photon_phi"][perm[1]], mass=0.0)
+        elif event["Photon_pt"][perm[0]] == event["Photon_pt"][perm[1]]:
+            pho1_vec = vector.obj(pt=event["Photon_pt"][perm[0]], eta=event["Photon_eta"][perm[0]], phi=event["Photon_phi"][perm[0]], mass=0.0)
+            pho2_vec = vector.obj(pt=event["Photon_pt"][perm[1]], eta=event["Photon_eta"][perm[1]], phi=event["Photon_phi"][perm[1]], mass=0.0)
+        assert pho1_vec.pt >= pho2_vec.pt
 
         diphoton_vec = pho1_vec + pho2_vec
 
         if diphoton_vec.mass != 0:
-            if pho1_vec.pt > 30.0 and pho2_vec.pt > 18.0 and pho1_vec.pt / diphoton_vec.mass > 30.55/65.0 and pho2_vec.pt / diphoton_vec.mass > 18.20/65.0:
+            pt_mgg = pho1_vec.pt / diphoton_vec.mass > 30.55/65.0 and pho2_vec.pt / diphoton_vec.mass > 18.20/65.0
+            if remove_pt_mgg:
+                pt_mgg = True
+            if pho1_vec.pt > 30.0 and pho2_vec.pt > 18.0 and pt_mgg:
                 if not apply_m55_trigger:
                     if pho1_vec.pt**2 + pho2_vec.pt**2 > best_dipho:
                         best_dipho = pho1_vec.pt**2 + pho2_vec.pt**2
@@ -182,6 +206,7 @@ def doSelections(
                             best_dipho = pho1_vec.pt**2 + pho2_vec.pt**2
                             diphoton = (diphoton_vec, pho1_vec, pho2_vec, perm)
 
+    # If diphoton exists, add some info to event and continue with selections.
     if diphoton is not None:
         # Add diphoton variables to events array
         event["dipho_mass"] = diphoton[0].mass
@@ -194,6 +219,9 @@ def doSelections(
         event["sublead_isScEtaEB"] = event["Photon_isScEtaEB"][diphoton[3][1]]
         event["sublead_isScEtaEE"] = event["Photon_isScEtaEE"][diphoton[3][1]]
 
+        if not remove_pt_mgg:
+            assert event["lead_pt"] > 30.0 and event["sublead_pt"] > 18.0 and event["pT1_m_gg"] > 30.55/65.0 and event["pT2_m_gg"] > 18.20/65.0
+
         pre_sel.append(event)
 
     else:
@@ -202,7 +230,8 @@ def doSelections(
     
     ### HLT Flag Check ###
 
-    if event['HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId' if year != 2018 else 'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto'] == True:
+    # If the event has made it this far, the event will have passed the previous selections.
+    if event['HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId' if year != "2018" else 'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto'] == True:
         triggers.append(event)
     else:
         return (initial_events, triggers, pre_sel, four_photons, pseudos, event)
@@ -210,31 +239,43 @@ def doSelections(
     
     ### 4 Photon Cut ###
 
-    if len(event["Photon_pt"]) >= 4:
-        four_photons.append(event)
+    # If the event has made it this far, the event will have passed the previous selections. Looking at good_photons, i.e. photons that have passed the above selections.
+    if try_weird_pseudo_selections:
+        if len(event["Photon_pt"]) >= 4:
+            four_photons.append(event)
+        else:
+            return (initial_events, triggers, pre_sel, four_photons, pseudos, event)
     else:
-        return (initial_events, triggers, pre_sel, four_photons, pseudos, event)
+        if len(good_photons) >= 4:
+            four_photons.append(event)
+        else:
+            return (initial_events, triggers, pre_sel, four_photons, pseudos, event)
 
 
     ### Pseudoscalar Cuts ###
 
-    if len(event["Photon_pt"]) < 4:
-        assert len(event["Photon_pt"]) >= 4, "Fewer than 4 photons remaining..."
-        return (initial_events, triggers, pre_sel, four_photons, pseudos, event)
+    # Keep only first 4 photons (ordered in descending pT).
+    if try_weird_pseudo_selections:
+        # Keep first 4 photons from event
+        descending_pt = ak.argsort(event["Photon_pt"], ascending=False)
+        for key in event.keys():
+            if type(event[key]) is list:
+                event[key] = [event[key][i] for i in descending_pt if i < 4]
+    else:
+        # Keep first 4 photons from good photons (passing pre-selections on a per-photon basis)
+        for key in event.keys():
+            if type(event[key]) is list:
+                event[key] = [event[key][i] for j, i in enumerate(good_photons) if j < 4]
 
-    # Get descending photon pT and keep only first 4
+    # Now, I look at the event directly since I've kept only the 4 photons with highest pT.
+    assert len(event["Photon_pt"]) == 4, len(event["Photon_pt"])
     descending_pt = ak.argsort(event["Photon_pt"], ascending=False)
-    for key in event.keys():
-        #if "fixedGridRhoAll" not in key and "fixedGridRhoFastjetAll" not in key and "HLT" not in key and type(event[key]) is list:
-        if type(event[key]) is list:
-            event[key] = [event[key][i] for i in descending_pt if i < 4]
 
-    assert len(event["Photon_pt"]) == 4
-    descending_pt = ak.argsort(event["Photon_pt"], ascending=False)
-
+    # Apply h4g-specific selections on photons and keep the good ones. Want 4 photons to pass in order to make pseudoscalars.
     good_photons = []
     for i in descending_pt:
         ## Fiducial cuts
+        #fiducial = np.abs(event["Photon_eta"][i]) < 2.5 and (np.abs(event["Photon_eta"][i]) > 1.566 or np.abs(event["Photon_eta"][i]) < 1.4442)
         fiducial = event["Photon_isScEtaEB"][i] or event["Photon_isScEtaEE"][i]
         
         ## pT cuts
@@ -246,7 +287,10 @@ def doSelections(
         else:
             pt = event["Photon_pt"][i] > 15.0
 
-        if fiducial and pt:
+        # Should not make a difference in the original, per-photon basis that I have used, but should with new per-event basis with try_weird_pseudo_selections set to True.
+        electron_veto = event["Photon_pixelSeed"][i] == False
+
+        if fiducial and pt and electron_veto:
             good_photons.append(i)
 
     # Minimum 4 photons cut for pseudoscalars
@@ -265,7 +309,7 @@ def doSelections(
         pho4_vec = vector.obj(pt=event["Photon_pt"][perm[3]], eta=event["Photon_eta"][perm[3]], phi=event["Photon_phi"][perm[3]], mass=0.0)
         mixes.append([pho1_vec, pho2_vec, pho3_vec, pho4_vec])
 
-    # Mass mixing
+    # Mass mixing for pseudoscalars
     best_perm = None
     best_dM = -1
     assert len(mixes) == 3 
@@ -282,22 +326,24 @@ def doSelections(
 
     # Make pseudoscalars and keep leading/subleading photons from each pseudoscalar
     order = None
-    try:
+    if (best_mix[0] + best_mix[1]).pt > (best_mix[2] + best_mix[3]).pt:
         pseudo1 = best_mix[0] + best_mix[1]
         pseudo2 = best_mix[2] + best_mix[3]
         assert pseudo1.pt > pseudo2.pt
         order = (best_mix[0], best_mix[1], best_mix[2], best_mix[3])
-    except AssertionError:
+    elif (best_mix[2] + best_mix[3]).pt > (best_mix[0] + best_mix[1]).pt:
         pseudo2 = best_mix[0] + best_mix[1]
         pseudo1 = best_mix[2] + best_mix[3]
         assert pseudo1.pt > pseudo2.pt
         order = (best_mix[2], best_mix[3], best_mix[0], best_mix[1])
-    assert order[0].pt > order[1].pt and order[2].pt and order[3].pt
 
+    assert order[0].pt >= order[1].pt and order[2].pt >= order[3].pt
+
+    # Make Higgs candidate
     higgs = pho1_vec + pho2_vec + pho3_vec + pho4_vec
     assert (pseudo1 + pseudo2).mass - higgs.mass < 0.0001, f"{(pseudo1 + pseudo2).mass} {higgs.mass}"
 
-    # Higgs mass search window
+    # 4-photon/Higgs candidate mass window
     if higgs.mass > 110.0 and higgs.mass < 180.0:
         pseudoscalars.append((pseudo1, pseudo2))
 
@@ -331,10 +377,16 @@ def loopEvents(
     pseudos,
     events,
     apply_m55_trigger,
+    include_mvaID,
+    remove_pt_mgg,
+    try_weird_pseudo_selections,
+    run_subset,
     year
 ) -> tuple:
 
-    milestones = [1, 10, 25, 50, 75, 100]
+    milestones = [10, 25, 50, 75, 100]
+    if run_subset:
+        milestones.insert(0, 5)
     for i, ak_event in enumerate(events):
         event = ak.to_list(ak_event)
 
@@ -343,7 +395,8 @@ def loopEvents(
         if percentage_complete >= milestones[0]:
             print(f"Progress at {milestones[0]}%!")
             milestones = milestones[1:]
-            #break
+            if run_subset:
+                break
  
         # Always add event to initial events array
         initial_events.append(event)
@@ -357,6 +410,9 @@ def loopEvents(
             pseudos,
             event,
             apply_m55_trigger,
+            include_mvaID,
+            remove_pt_mgg,
+            try_weird_pseudo_selections,
             args.year
         )
 
@@ -370,9 +426,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Command line options parser", conflict_handler="resolve")
 
     # Input arguments
-    parser.add_argument("-m", "--mass", help="Choose mass point to run. Defaults to all.", type=int, default=None, required=False)
-    parser.add_argument("-m55", "--apply_m55_trigger", help="Apply m_gg > 55 GeV trigger and preselection.", action="store_true", required=False)
-    parser.add_argument("-y", "--year", help="Year of samples to use. Defaults to 2022.", type=int, default=2022, required=False)
+    parser.add_argument("-m", "--mass", help="Choose mass point to run. Defaults to all.", default=None, required=False)
+    parser.add_argument("-m55", "--apply_m55_trigger", help="Apply m_gg > 55 GeV trigger and preselections.", action="store_true", required=False)
+    parser.add_argument("-noPtMgg", "--remove_pt_mgg", help="Remove pt/mgg in preselections.", action="store_true", required=False)
+    parser.add_argument("-mvaID", "--apply_mvaID", help="Apply mvaID cut in preselections.", action="store_true", required=False)
+    parser.add_argument("-perEvent", "--try_weird_pseudo_selections", help="Use per-event basis for all cuts.", action="store_true", required=False)
+    parser.add_argument("-sub", "--run_subset", help="Run only 5% of sample.", action="store_true", required=False)
+    parser.add_argument("-y", "--year", help="Year of samples to use. Defaults to 2022.", default=2022, required=False)
+    parser.add_argument("-ex", "--extra", default="", type=str, help="Extra string appended to efficiencies JSON. Start with _.", required=False)
     args = parser.parse_args()
 
     # Get current directory
@@ -383,12 +444,20 @@ if __name__ == "__main__":
     if args.mass is None:
         masses = [m for m in range(15,65,5)]
     else:
-        assert os.path.exists(f"{cwd}/root_samples/{args.year}/{args.mass}_GeV.root")
+        if args.year != "Data_2022C":
+            assert os.path.exists(f"{cwd}/root_samples/{args.year}/{args.mass}_GeV.root")
+        else:
+            # Run over data check by doing: python run_h4g_nums.py -y Data_2022C -m dataC_2022
+            assert os.path.exists(f"{cwd}/root_samples/{args.year}/{args.mass}.root")
         masses.append(args.mass)
 
     # Create blank efficiency JSON if it doesn't exist to start clean
     eff = dict.fromkeys([f"{m}_GeV" for m in range(15,65,5)])
-    eff_path = f"efficiencies_{args.year}.json" if not args.apply_m55_trigger else f"efficiencies_m55_{args.year}.json"
+
+    if not os.path.exists("jsons"):
+        os.mkdir("jsons")
+
+    eff_path = f"jsons/efficiencies_{args.year}{args.extra.strip()}.json" if not args.apply_m55_trigger else f"efficiencies_{args.year}_m55{args.extra.strip()}.json"
     if not os.path.exists(eff_path):
         with open(eff_path, "w") as f:
             json.dump(eff, f, indent=4)
@@ -396,7 +465,8 @@ if __name__ == "__main__":
     # Calculate efficiency for chosen masses
     for mass in masses:
         # Load Events tree from ROOT file using numpy arrays
-        events_ak = uproot.open(f"{cwd}/root_samples/{args.year}/{mass}_GeV.root:Events").arrays([
+        path = f"{mass}_GeV.root" if args.year != "Data_2022C" else f"{mass}.root"
+        events_ak = uproot.open(f"{cwd}/root_samples/{args.year}/{path}:Events").arrays([
             'Photon_electronVeto',
             'Photon_isScEtaEB',
             'Photon_isScEtaEE',
@@ -404,18 +474,19 @@ if __name__ == "__main__":
             'Photon_hoe',
             'Photon_mvaID',
             'Photon_pfPhoIso03',
-            'Photon_pfRelIso03_chg_quadratic' if args.year != 2018 else 'Photon_pfRelIso03_chg',
+            'Photon_pfRelIso03_chg_quadratic' if args.year != "2018" else 'Photon_pfRelIso03_chg',
             'Photon_pt',
             'Photon_eta',
             'Photon_phi',
             'Photon_r9',
             'Photon_sieie',
             'Photon_trkSumPtHollowConeDR03',
-            'Rho_fixedGridRhoAll' if args.year != 2018 else 'fixedGridRhoFastjetAll',
-            'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId' if args.year != 2018 else 'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto',
-            'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_Mass55' if args.year != 2018 else 'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto_Mass55']
+            'Photon_mvaID',
+            'Rho_fixedGridRhoAll' if args.year != "2018" else 'fixedGridRhoFastjetAll',
+            'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId' if args.year != "2018" else 'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto',
+            'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_Mass55' if args.year != "2018" else 'HLT_Diphoton30_18_R9IdL_AND_HE_AND_IsoCaloId_NoPixelVeto_Mass55']
         )
-        print(f"Loaded one file for m_a = {mass} GeV!")
+        print(f"Loaded one file for m_a = {mass} GeV!" if mass != "dataC_2022" else f"Loaded one file for Data 2022C!")
 
         # Setup for efficiencies at selection steps
         Nevents = {
@@ -438,15 +509,19 @@ if __name__ == "__main__":
             Nevents["selections"][1],
             events_ak,
             args.apply_m55_trigger,
+            args.apply_mvaID,
+            args.remove_pt_mgg,
+            args.try_weird_pseudo_selections,
+            args.run_subset,
             args.year
         )
 
-        print(f"Finished processing {len(outputs[0])} events! {outputs[5]}% of total.\n")
+        print(f"Finished processing {len(outputs[0])} events! {outputs[5]:.0f}% of total.\n")
 
         # Save selected arrays to Nevents and count # of events remaining at each step
         Nevents["initial_events"] = (len(outputs[0]), outputs[0])
-        Nevents["trigger_flag"] = (len(outputs[1]), outputs[1])
         Nevents["pre_selections"] = (len(outputs[2]), outputs[2])
+        Nevents["trigger_flag"] = (len(outputs[1]), outputs[1])
         Nevents["pre_selections+4photon"] = (len(outputs[3]), outputs[3])
         Nevents["selections"] = (len(outputs[4]), outputs[4])
 
@@ -454,7 +529,12 @@ if __name__ == "__main__":
         selection_eff_str = f"~~~  Selection Efficiency for m_a = {mass} GeV  ~~~"
         print(selection_eff_str)
         for key, value in Nevents.items():
-            print(f"{key:<25}", f"Numerator: {value[0]:<15}", f"Denominator: {Nevents['initial_events'][0]:<20}", f"Efficiency: {value[0] / Nevents['initial_events'][0] * 100:<.2f}%")
+            if key == "trigger_flag":
+                out = f"{key:<25}\t Numerator: {value[0]:<15}\t Denominator: {Nevents['initial_events'][0]:<20}\t Efficiency: {value[0] / Nevents['initial_events'][0] * 100:<.2f}%\t Eff Relative to Pre-Selections: {value[0] / Nevents['pre_selections'][0] * 100:<.2f}%"
+            else:
+                out = f"{key:<25}\t Numerator: {value[0]:<15}\t Denominator: {Nevents['initial_events'][0]:<20}\t Efficiency: {value[0] / Nevents['initial_events'][0] * 100:<.2f}%"
+
+            print(out)
 
         # Save efficiency for given mass point to JSON        
         with open(eff_path, "r+") as f:
@@ -477,9 +557,13 @@ if __name__ == "__main__":
         percentage = "" if outputs[5] == 100 else f"_{outputs[5]:.0f}pc"
         if not os.path.exists("outputs"):
             os.mkdir("outputs")
+        if not os.path.exists(os.path.join("outputs", args.year.strip())):
+            os.mkdir(os.path.join("outputs", args.year.strip()))
+        if not os.path.exists(os.path.join("outputs", args.year.strip(), str(mass))):
+            os.mkdir(os.path.join("outputs", args.year.strip(), str(mass)))
 
         current_day = time.strftime("%Y%m%d", time.localtime())
-        parquet_path = f"outputs/{mass}_GeV{percentage}_{current_day}.parquet"
+        parquet_path = f"outputs/{args.year.strip()}/{mass}_GeV/{mass}_GeV{percentage}_{current_day}{args.extra.strip()}.parquet" if not args.apply_m55_trigger else f"outputs/{args.year.strip()}/{mass}/{mass}_GeV{percentage}_m55_{current_day}{args.extra.strip()}.parquet"
         df = ak.to_pandas(Nevents["selections"][1])
         df.to_parquet(parquet_path)
 
@@ -488,6 +572,6 @@ if __name__ == "__main__":
         if percentage == "":
             print(f"Saved one {mass} GeV sample file to parquet.")
         else:
-            print(f"Saved {percentage.replace('_','')}% of one {mass} GeV sample file to parquet.")
+            print(f"Saved {percentage.replace('_','').replace('pc','%')} of one {mass} GeV sample file to parquet.")
 
-        print("~" * len(selection_eff_str))
+        print("~" * len(selection_eff_str), '\n')

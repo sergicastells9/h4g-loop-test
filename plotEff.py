@@ -18,14 +18,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Command line options parser", conflict_handler="resolve")
 
     # Input arguments
-    parser.add_argument("-eff", "--eff_json", help="Efficiency JSON to load.", type=str, default="efficiencies.json", required=False)
+    parser.add_argument("-eff", "--eff_json", help="Efficiency JSON to load.", type=str, default=None, required=False)
     args = parser.parse_args()
 
     # Get current directory
     cwd = os.path.dirname(os.path.abspath(__file__))
     
+
+    # Make for-loop with eff_json over either 1 element or the entire set of efficiency JSONs in the "jsons" directory.
+    assert False, "Need to include for-loop here!"
+
     # Load efficiencies JSON
-    with open(f"{cwd}/{args.eff_json}", "r") as f:
+    with open(f"{cwd}/{eff_json}", "r") as f:
         eff_list = json.load(f)
 
     efficiencies = {}
@@ -64,10 +68,10 @@ if __name__ == "__main__":
     ax.set_ylim(0.0, 60.0)
 
     # Save figure
-    path = os.path.join(cwd, "efficiencies", args.eff_json.replace('json', 'png'))
+    path = os.path.join(cwd, "efficiencies", eff_json.replace('json', 'png'))
     if not os.path.exists(os.path.join(cwd, "efficiencies")):
         os.mkdir(os.path.join(cwd, "efficiencies"))
     plt.savefig(path)
     assert os.path.isfile(path), "Saved plot does not exist."
-    print(f"Saved {args.eff_json.replace('json', 'png')} to file.")
+    print(f"Saved {eff_json.replace('json', 'png')} to file.")
     plt.close()

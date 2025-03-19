@@ -304,7 +304,7 @@ def plot2D(
             branches = ["pT1_m_gg", "pT2_m_gg", "lead_pt", "sublead_pt"]
             xtitles = ["p_{T}^{#gamma_{1}} / m_{#gamma #gamma}", "p_{T}^{#gamma_{2}} / m_{#gamma #gamma}", "p_{T}^{#gamma_{1}}", "p_{T}^{#gamma_{2}}"]
             boundsList = [[0.0, 7.0, 0.0, 125.0], [0.0, 5.0, 0.0, 125.0], [0.0, 200.0, 0.0, 125.0], [0.0, 200.0, 0.0, 125.0]]
-            binsScales = [[100.0/7.0, 1.0], [20.0, 1.0], [1.0, 1.0], [1.0, 1.0]]
+            binsScales = [[20.0, 1.0], [20.0, 1.0], [1.0, 1.0], [1.0, 1.0]]
             cut_list = [cut_p1, cut_p2, cut_p1, cut_p2]
         elif ybranch == "mass":
             names = [f"pT1_ma1_vs_ma1_{region}", f"pT2_ma1_vs_ma1_{region}", f"pT1_ma2_vs_ma2_{region}", f"pT2_ma2_vs_ma2_{region}", f"pT1_vs_ma1_{region}", f"pT2_vs_ma1_{region}", f"pT1_vs_ma2_{region}", f"pT2_vs_ma2_{region}"]
