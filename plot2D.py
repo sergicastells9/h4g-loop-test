@@ -445,7 +445,6 @@ if __name__ == "__main__":
 
     # Get specified directory in signal_tests
     assert os.path.exists(args.path)
-    print(args.path[8:14])
 
     if not os.path.exists("2d_plots"):
         os.mkdir("2d_plots")
@@ -464,9 +463,9 @@ if __name__ == "__main__":
         os.mkdir(f"2d_plots/{to_plot}/")
 
     if ybranch == "dipho_mass":
-        samples = {args.path[8:14]: loadSamples(args.path, branches=["dipho_mass", "pT1_m_gg", "pT2_m_gg", "lead_isScEtaEB", "lead_isScEtaEE", "sublead_isScEtaEB", "sublead_isScEtaEE", "lead_pt", "sublead_pt"])}
+        samples = {args.path[13:19]: loadSamples(args.path, branches=["dipho_mass", "pT1_m_gg", "pT2_m_gg", "lead_isScEtaEB", "lead_isScEtaEE", "sublead_isScEtaEB", "sublead_isScEtaEE", "lead_pt", "sublead_pt"])}
     elif ybranch == "mass":
-        samples = {args.path[8:14]: loadSamples(args.path, branches=["LeadPs_mass", "SubleadPs_mass", "pT1_ma1", "pT2_ma1", "pT1_ma2", "pT2_ma2", "LeadPs_leading_pho_pt", "LeadPs_subleading_pho_pt", "SubleadPs_leading_pho_pt", "SubleadPs_subleading_pho_pt"])}
+        samples = {args.path[13:19]: loadSamples(args.path, branches=["LeadPs_mass", "SubleadPs_mass", "pT1_ma1", "pT2_ma1", "pT1_ma2", "pT2_ma2", "LeadPs_leading_pho_pt", "LeadPs_subleading_pho_pt", "SubleadPs_leading_pho_pt", "SubleadPs_subleading_pho_pt"])}
     #for region in ["combined", "EB", "EE", "2EB", "2EE", "1EB1EE"] if ybranch == "dipho_mass" else ["combined"]:
     for region in ["combined"]:
         plot2D(samples, f"_replace.png", 2022, f"2d_plots", region, ybranch=ybranch, subdir=to_plot)

@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     plt.figure()
     label_cut = 1
-    for eff in list(Nevents.keys())[label_cut:]:
+    for eff in list(Nevents.keys())[1:2] + list(Nevents.keys())[3:]:
         x = []
         y = []
         for m in range(15,65,5):
@@ -68,11 +68,11 @@ if __name__ == "__main__":
     plt.xlabel("m(a) [GeV]", fontsize=12)
     # Efficiency x Acceptance refers to acceptance (fiducial/eta cuts) and efficiency (all other selections on objects)
     plt.ylabel("Efficiency x Acceptance (%)", fontsize=12)
-    plt.legend(labels=list(Nevents.keys())[label_cut:], frameon=True, loc="upper left")
+    plt.legend(labels=list(Nevents.keys())[1:2] + list(Nevents.keys())[3:], frameon=True, loc="upper left")
     plt.grid()
 
     ax = plt.gca()
-    ax.set_ylim(0.0, 60.0)
+    ax.set_ylim(0.0, 75.0)
 
     # Save figure
     path = os.path.join(cwd, "efficiencies", args.eff_json.replace('json', 'png'))
